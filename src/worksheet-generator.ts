@@ -1,6 +1,7 @@
 import { Border, Borders, Style, Workbook } from 'exceljs';
 import { randomUUID } from 'crypto';
 import fake from 'faker';
+import { Duplex } from 'stream';
 
 interface Register {
 	id: string;
@@ -11,7 +12,12 @@ interface Register {
 	createdAt: Date;
 }
 
-export const GenerateWorkbook = async (): Promise<Buffer> => {
+interface Result {
+	workbook: Duplex;
+	size: number;
+}
+
+export const GenerateWorkbook = async (): Promise<Result> => {
 
 	const registers: Register[] = [];
 
@@ -84,8 +90,13 @@ export const GenerateWorkbook = async (): Promise<Buffer> => {
 	// set header style
 	worksheet.getRow(1).font = { bold: true, size: 14, name: 'Tahoma' }
 
-	const result = workbook.xlsx.writeBuffer({ filename: 'worksheet.xlsx' });
+	const result = await workbook.xlsx.writeBuffer({ filename: 'worksheet.xlsx' });
 
-	return result as Promise<Buffer>;
+	const duplex = new Duplex();
+
+	duplex.push(result);
+	duplex.push(null);
+	
+	return { workbook: duplex, size: result.byteLength };
 	
 }
